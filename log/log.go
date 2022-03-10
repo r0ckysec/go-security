@@ -118,35 +118,27 @@ func Error(args ...interface{}) {
 	logger.Errorln(args)
 }
 
+func FatalF(format string, args ...interface{}) {
+	logger.Fatal(fmt.Sprintf(format, args...))
+}
+
+func Fatal(args ...interface{}) {
+	logger.Fatalln(args)
+}
+
 func WarningF(format string, args ...interface{}) {
-	//if progress.Bar != nil {
-	//	_ = progress.Bar.Clear()
-	//	defer progress.Bar.RenderBlank()
-	//}
 	logger.Warningf(fmt.Sprintf(format, args...))
 }
 
 func Warning(args ...interface{}) {
-	//if progress.Bar != nil {
-	//	_ = progress.Bar.Clear()
-	//	defer progress.Bar.RenderBlank()
-	//}
 	logger.Warningln(args)
 }
 
 // DebugF print debug message
 func DebugF(format string, args ...interface{}) {
-	//if progress.Bar != nil {
-	//	_ = progress.Bar.Clear()
-	//	defer progress.Bar.RenderBlank()
-	//}
 	logger.Debug(fmt.Sprintf(format, args...))
 }
 
 func Debug(args ...interface{}) {
-	//if progress.Bar != nil {
-	//	_ = progress.Bar.Clear()
-	//	defer progress.Bar.RenderBlank()
-	//}
 	logger.Debugln(args)
 }
