@@ -58,18 +58,20 @@ var (
 )
 
 type Request struct {
-	host    string
-	headers map[string]string
-	proxy   string
-	timeout time.Duration
-	client  *fasthttp.Client
+	host      string
+	headers   map[string]string
+	proxy     string
+	timeout   time.Duration
+	client    *fasthttp.Client
+	redirects int
 }
 
 func NewRequest() *Request {
 	return &Request{
-		headers: make(map[string]string),
-		timeout: dialTimout * 4,
-		client:  &client,
+		headers:   make(map[string]string),
+		timeout:   dialTimout * 4,
+		client:    &client,
+		redirects: 0,
 	}
 }
 
@@ -85,6 +87,10 @@ func (req *Request) SetProxy(proxy string) {
 }
 func (req *Request) SetTimeout(timeout int) {
 	req.timeout = time.Duration(timeout) * time.Second
+}
+
+func (req *Request) SetRedirects(r int) {
+	req.redirects = r
 }
 
 func (req *Request) Request(method string, Url string, data string) ([]byte, *fasthttp.ResponseHeader, error) {
@@ -140,9 +146,14 @@ func (req *Request) Request(method string, Url string, data string) ([]byte, *fa
 	defer fasthttp.ReleaseResponse(resp) // 用完需要释放资源, 一定要释放
 	request.SetConnectionClose()
 	var err error
-	if err = req.client.DoTimeout(request, resp, req.timeout); err != nil {
-		//log.Log.Println("请求失败: ", err.Error())
-		return nil, nil, err
+	if req.redirects > 0 {
+		if err = req.client.DoRedirects(request, resp, req.redirects); err != nil {
+			return nil, nil, err
+		}
+	} else {
+		if err = req.client.DoTimeout(request, resp, req.timeout); err != nil {
+			return nil, nil, err
+		}
 	}
 	header := &fasthttp.ResponseHeader{}
 	resp.Header.CopyTo(header)
