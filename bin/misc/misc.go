@@ -193,6 +193,16 @@ func FixLine(line string) string {
 	return line
 }
 
+// FixLineSpace 行去换行、制表符、去空格
+func FixLineSpace(line string) string {
+	line = exbytes.ToString(exbytes.Replace(exstrings.UnsafeToBytes(line), []byte("\r"), []byte(""), -1))
+	line = exbytes.ToString(exbytes.Replace(exstrings.UnsafeToBytes(line), []byte(" "), []byte(""), -1))
+	line = exbytes.ToString(exbytes.Replace(exstrings.UnsafeToBytes(line), []byte("\t"), []byte(""), -1))
+	line = exbytes.ToString(exbytes.Replace(exstrings.UnsafeToBytes(line), []byte("\n"), []byte(""), -1))
+	line = exbytes.ToString(exbytes.Replace(exstrings.UnsafeToBytes(line), []byte("\xc2\xa0"), []byte(""), -1))
+	return line
+}
+
 // FixLineBytes 字节去换行、制表符、空格
 func FixLineBytes(bytes []byte) []byte {
 	bytes = exbytes.Replace(bytes, []byte("\r"), []byte(""), -1)

@@ -30,6 +30,10 @@ func init() {
 	//}
 }
 
+func GetLogger() *logrus.Logger {
+	return logger
+}
+
 func SetOutput(output io.Writer) {
 	logger.SetOutput(output)
 }
