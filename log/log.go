@@ -49,72 +49,40 @@ func SetLevel(level logrus.Level) {
 
 // GoodF print good message
 func Green(format string, args ...interface{}) {
-	//if progress.Bar != nil {
-	//	_ = progress.Bar.Clear()
-	//	defer progress.Bar.RenderBlank()
-	//}
 	good := color.GreenString("[+]")
 	fmt.Printf("%s %s\n", good, fmt.Sprintf(format, args...))
 }
 
 func Yellow(format string, args ...interface{}) {
-	//if progress.Bar != nil {
-	//	_ = progress.Bar.Clear()
-	//	defer progress.Bar.RenderBlank()
-	//}
 	good := color.YellowString("[!]")
 	fmt.Printf("%s %s\n", good, fmt.Sprintf(format, args...))
 }
 
 func Blue(format string, args ...interface{}) {
-	//if progress.Bar != nil {
-	//	_ = progress.Bar.Clear()
-	//	defer progress.Bar.RenderBlank()
-	//}
 	good := color.BlueString("[*]")
 	fmt.Printf("%s %s\n", good, fmt.Sprintf(format, args...))
 }
 
 func IsVul(format string, args ...interface{}) {
-	//if progress.Bar != nil {
-	//	_ = progress.Bar.Clear()
-	//	defer progress.Bar.RenderBlank()
-	//}
 	good := color.RedString("[HACKED]")
 	fmt.Printf("%s %s\n", good, fmt.Sprintf(format, args...))
 }
 
 // InforF print info message
 func InforF(format string, args ...interface{}) {
-	//if progress.Bar != nil {
-	//	_ = progress.Bar.Clear()
-	//	defer progress.Bar.RenderBlank()
-	//}
 	logger.Info(fmt.Sprintf(format, args...))
 }
 
 func Info(args ...interface{}) {
-	//if progress.Bar != nil {
-	//	_ = progress.Bar.Clear()
-	//	defer progress.Bar.RenderBlank()
-	//}
 	logger.Infoln(args)
 }
 
 // ErrorF print good message
 func ErrorF(format string, args ...interface{}) {
-	//if progress.Bar != nil {
-	//	_ = progress.Bar.Clear()
-	//	defer progress.Bar.RenderBlank()
-	//}
 	logger.Error(fmt.Sprintf(format, args...))
 }
 
 func Error(args ...interface{}) {
-	//if progress.Bar != nil {
-	//	_ = progress.Bar.Clear()
-	//	defer progress.Bar.RenderBlank()
-	//}
 	logger.Errorln(args)
 }
 
