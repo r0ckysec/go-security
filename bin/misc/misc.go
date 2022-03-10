@@ -14,6 +14,7 @@ import (
 	"unsafe"
 )
 
+// StrArr2IntArr string数组转化int数组
 func StrArr2IntArr(strArr []string) ([]int, error) {
 	var intArr []int
 	for _, value := range strArr {
@@ -26,6 +27,7 @@ func StrArr2IntArr(strArr []string) ([]int, error) {
 	return intArr, nil
 }
 
+// Str2Int string转int
 func Str2Int(str string) int {
 	intValue, err := strconv.Atoi(str)
 	if err != nil {
@@ -34,6 +36,7 @@ func Str2Int(str string) int {
 	return intValue
 }
 
+// IntArr2StrArr int数组转string数组
 func IntArr2StrArr(intArr []int) []string {
 	var strArr []string
 	for _, value := range intArr {
@@ -43,10 +46,12 @@ func IntArr2StrArr(intArr []int) []string {
 	return strArr
 }
 
+// Int2Str int转string
 func Int2Str(Int int) string {
 	return strconv.Itoa(Int)
 }
 
+// IsInStrArr 是否在string数组中
 func IsInStrArr(slice []string, val string) bool {
 	for _, item := range slice {
 		if item == val {
@@ -56,6 +61,7 @@ func IsInStrArr(slice []string, val string) bool {
 	return false
 }
 
+// IsInIntArr 是否在int数组中
 func IsInIntArr(slice []int, val int) bool {
 	for _, item := range slice {
 		if item == val {
@@ -65,6 +71,7 @@ func IsInIntArr(slice []int, val int) bool {
 	return false
 }
 
+// WriteLine 写入文件
 func WriteLine(fileName string, byte []byte) error {
 	//file, err := os.OpenFile(fileName, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666)
 	_ = os.RemoveAll(fileName)
@@ -89,6 +96,7 @@ func WriteLine(fileName string, byte []byte) error {
 	return err
 }
 
+// ReadLine 读取行
 func ReadLine(fileName string, handler func(string, bool)) error {
 	f, err := os.Open(fileName)
 	if err != nil {
@@ -109,6 +117,7 @@ func ReadLine(fileName string, handler func(string, bool)) error {
 	}
 }
 
+// ReadLineAll 读取文件返回字符串数组
 func ReadLineAll(fileName string) []string {
 	var strArr []string
 	f, err := os.Open(fileName)
@@ -117,6 +126,7 @@ func ReadLineAll(fileName string) []string {
 	}
 	defer f.Close()
 	buf := bufio.NewReader(f)
+	defer buf.Reset(buf)
 	for {
 		line, err := buf.ReadBytes('\n')
 		line = FixLineBytes(line)
@@ -130,6 +140,7 @@ func ReadLineAll(fileName string) []string {
 	}
 }
 
+// ReadLineStr 读取文件返回字符串
 func ReadLineStr(fileName string) string {
 	var str = new(strings.Builder)
 	defer str.Reset()
@@ -152,6 +163,7 @@ func ReadLineStr(fileName string) string {
 	return str.String()
 }
 
+// FixSpace 自定义空格数去空格
 func FixSpace(line string, len int) string {
 	switch len {
 	case 0:
@@ -165,6 +177,7 @@ func FixSpace(line string, len int) string {
 	}
 }
 
+// FixLine 行去换行、制表符（不去空格）
 func FixLine(line string) string {
 	//line = strings.Replace(line, "\r", "", -1)
 	////line = strings.Replace(line, " ", "", -1)
@@ -180,6 +193,7 @@ func FixLine(line string) string {
 	return line
 }
 
+// FixLineBytes 字节去换行、制表符、空格
 func FixLineBytes(bytes []byte) []byte {
 	bytes = exbytes.Replace(bytes, []byte("\r"), []byte(""), -1)
 	bytes = exbytes.Replace(bytes, []byte(" "), []byte(""), -1)
@@ -189,6 +203,7 @@ func FixLineBytes(bytes []byte) []byte {
 	return bytes
 }
 
+// FixLineNotWrap 去制表符、空格（不去换行）
 func FixLineNotWrap(line string) string {
 	//line = strings.Replace(line, "\r", "", -1)
 	//line = strings.Replace(line, " ", "", -1)
@@ -212,6 +227,7 @@ func CheckIllegal(cmd string) bool {
 	return false
 }
 
+// Str2ArrByWarp string转字符串数组
 func Str2ArrByWarp(str string) []string {
 	strNoWarp := FixLineNotWrap(str)
 	arr := strings.Split(strNoWarp, "\n")
@@ -232,17 +248,20 @@ func RemoveDuplicatesAndEmpty(ss []string) (ret []string) {
 	return result
 }
 
+// FileIsExist 文件是否存在
 func FileIsExist(path string) bool {
 	_, err := os.Lstat(path)
 	return !os.IsNotExist(err)
 }
 
+// Base64Encode base64编码
 func Base64Encode(keyword string) string {
 	input := []byte(keyword)
 	encodeString := base64.StdEncoding.EncodeToString(input)
 	return encodeString
 }
 
+// Base64Decode base64解码
 func Base64Decode(encodeString string) string {
 	decodeBytes, err := base64.StdEncoding.DecodeString(encodeString)
 	if err != nil {
@@ -252,6 +271,7 @@ func Base64Decode(encodeString string) string {
 	return Bytes2Str(decodeBytes)
 }
 
+// CloneMap 克隆map
 func CloneMap(strMap map[string]interface{}) map[string]interface{} {
 	newStrMap := make(map[string]interface{})
 	for k, v := range strMap {
@@ -260,6 +280,7 @@ func CloneMap(strMap map[string]interface{}) map[string]interface{} {
 	return newStrMap
 }
 
+// CloneStrMap 克隆string map
 func CloneStrMap(strMap map[string]string) map[string]string {
 	newStrMap := make(map[string]string)
 	for k, v := range strMap {
@@ -268,6 +289,7 @@ func CloneStrMap(strMap map[string]string) map[string]string {
 	return newStrMap
 }
 
+// CloneIntMap 克隆int map
 func CloneIntMap(intMap map[int]string) map[int]string {
 	newIntMap := make(map[int]string)
 	for k, v := range intMap {
@@ -276,6 +298,7 @@ func CloneIntMap(intMap map[int]string) map[int]string {
 	return newIntMap
 }
 
+// ToMap map[string]string 转 map[string]interface{}
 func ToMap(i map[string]string) map[string]interface{} {
 	m := make(map[string]interface{}, len(i))
 	for k, v := range i {
@@ -296,10 +319,19 @@ func Bytes2Str(b []byte) string {
 	return *(*string)(unsafe.Pointer(&b))
 }
 
+// StrInArr 高效率判断字符串是否在数组中
 func StrInArr(ss []string, s string) bool {
 	index := sort.SearchStrings(ss, s)
 	if index < len(ss) && ss[index] == s {
 		return true
 	}
 	return false
+}
+
+// MergeSlice 合并字符串数组
+func MergeSlice(s1 []string, s2 []string) []string {
+	slice := make([]string, len(s1)+len(s2))
+	copy(slice, s1)
+	copy(slice[len(s1):], s2)
+	return slice
 }
