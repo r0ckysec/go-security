@@ -2,6 +2,8 @@ package misc
 
 import (
 	"bufio"
+	"bytes"
+	"compress/zlib"
 	"encoding/base64"
 	"github.com/thinkeridea/go-extend/exbytes"
 	"github.com/thinkeridea/go-extend/exstrings"
@@ -344,4 +346,26 @@ func MergeSlice(s1 []string, s2 []string) []string {
 	copy(slice, s1)
 	copy(slice[len(s1):], s2)
 	return slice
+}
+
+// DoZlibCompress 压缩（字符串压缩）
+func DoZlibCompress(src []byte) []byte {
+	var in bytes.Buffer
+	w := zlib.NewWriter(&in)
+	_, _ = w.Write(src)
+	_ = w.Close()
+	return in.Bytes()
+}
+
+// DoZlibUnCompress 解压（字符串解压）
+func DoZlibUnCompress(compressSrc []byte) (unzip []byte, err error) {
+	b := bytes.NewReader(compressSrc)
+	var out bytes.Buffer
+	r, err := zlib.NewReader(b)
+	if err != nil {
+		return
+	}
+	_, _ = io.Copy(&out, r)
+	unzip = out.Bytes()
+	return
 }
