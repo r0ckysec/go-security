@@ -516,3 +516,10 @@ func isZeroValue(f *flag.Flag, value string) bool {
 func normalizeGroupDescription(description string) string {
 	return strings.ToUpper(description)
 }
+
+func CreateGroup(flagSet *FlagSet, groupName, description string, flags ...*FlagData) {
+	flagSet.SetGroup(groupName, description)
+	for _, currentFlag := range flags {
+		currentFlag.Group(groupName)
+	}
+}
