@@ -75,6 +75,13 @@ func (flagSet *FlagSet) SetGroup(name, description string) {
 	flagSet.groups = append(flagSet.groups, groupData{name: name, description: description})
 }
 
+func (flagSet *FlagSet) CreateGroup(groupName, description string, flags ...*FlagData) {
+	flagSet.SetGroup(groupName, description)
+	for _, currentFlag := range flags {
+		currentFlag.Group(groupName)
+	}
+}
+
 // Parse parses the flags provided to the library.
 func (flagSet *FlagSet) Parse() error {
 	flagSet.CommandLine.Usage = flagSet.usageFunc
@@ -515,11 +522,4 @@ func isZeroValue(f *flag.Flag, value string) bool {
 // normalizeGroupDescription returns normalized description field for group
 func normalizeGroupDescription(description string) string {
 	return strings.ToUpper(description)
-}
-
-func CreateGroup(flagSet *FlagSet, groupName, description string, flags ...*FlagData) {
-	flagSet.SetGroup(groupName, description)
-	for _, currentFlag := range flags {
-		currentFlag.Group(groupName)
-	}
 }
