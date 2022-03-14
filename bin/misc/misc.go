@@ -233,7 +233,7 @@ func FixLineNotWrap(line string) string {
 func CheckIllegal(cmd string) bool {
 	if strings.Contains(cmd, "&") || strings.Contains(cmd, "|") || strings.Contains(cmd, ";") ||
 		strings.Contains(cmd, "$") || strings.Contains(cmd, "'") || strings.Contains(cmd, "`") ||
-		strings.Contains(cmd, "(") || strings.Contains(cmd, ")") || strings.Contains(cmd, "\"") {
+		strings.Contains(cmd, "(") || strings.Contains(cmd, ")") {
 		return true
 	}
 	return false
