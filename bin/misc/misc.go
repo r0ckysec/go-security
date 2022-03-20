@@ -169,7 +169,7 @@ func ReadLineStr(fileName string) string {
 func FixSpace(line string, len int) string {
 	switch len {
 	case 0:
-		line = exbytes.ToString(exbytes.Replace(exstrings.UnsafeToBytes(line), []byte(" "), []byte(""), -1))
+		line = exbytes.ToString(exbytes.Replace(exstrings.Bytes(line), []byte(" "), []byte(""), -1))
 		return line
 	default:
 		var re, _ = regexp.Compile("\\s{" + Int2Str(len+1) + ",}")
@@ -187,21 +187,21 @@ func FixLine(line string) string {
 	//line = strings.Replace(line, "\r", "", -1)
 	//line = strings.Replace(line, "\n", "", -1)
 	//line = strings.Replace(line, "\xc2\xa0", "", -1)
-	line = exbytes.ToString(exbytes.Replace(exstrings.UnsafeToBytes(line), []byte("\r"), []byte(""), -1))
-	//line = exbytes.ToString(exbytes.Replace(exstrings.UnsafeToBytes(line), []byte(" "), []byte(""), -1))
-	line = exbytes.ToString(exbytes.Replace(exstrings.UnsafeToBytes(line), []byte("\t"), []byte(""), -1))
-	line = exbytes.ToString(exbytes.Replace(exstrings.UnsafeToBytes(line), []byte("\n"), []byte(""), -1))
-	line = exbytes.ToString(exbytes.Replace(exstrings.UnsafeToBytes(line), []byte("\xc2\xa0"), []byte(""), -1))
+	line = exbytes.ToString(exbytes.Replace(exstrings.Bytes(line), []byte("\r"), []byte(""), -1))
+	//line = exbytes.ToString(exbytes.Replace(exstrings.Bytes(line), []byte(" "), []byte(""), -1))
+	line = exbytes.ToString(exbytes.Replace(exstrings.Bytes(line), []byte("\t"), []byte(""), -1))
+	line = exbytes.ToString(exbytes.Replace(exstrings.Bytes(line), []byte("\n"), []byte(""), -1))
+	line = exbytes.ToString(exbytes.Replace(exstrings.Bytes(line), []byte("\xc2\xa0"), []byte(""), -1))
 	return line
 }
 
 // FixLineSpace 行去换行、制表符、去空格
 func FixLineSpace(line string) string {
-	line = exbytes.ToString(exbytes.Replace(exstrings.UnsafeToBytes(line), []byte("\r"), []byte(""), -1))
-	line = exbytes.ToString(exbytes.Replace(exstrings.UnsafeToBytes(line), []byte(" "), []byte(""), -1))
-	line = exbytes.ToString(exbytes.Replace(exstrings.UnsafeToBytes(line), []byte("\t"), []byte(""), -1))
-	line = exbytes.ToString(exbytes.Replace(exstrings.UnsafeToBytes(line), []byte("\n"), []byte(""), -1))
-	line = exbytes.ToString(exbytes.Replace(exstrings.UnsafeToBytes(line), []byte("\xc2\xa0"), []byte(""), -1))
+	line = exbytes.ToString(exbytes.Replace(exstrings.Bytes(line), []byte("\r"), []byte(""), -1))
+	line = exbytes.ToString(exbytes.Replace(exstrings.Bytes(line), []byte(" "), []byte(""), -1))
+	line = exbytes.ToString(exbytes.Replace(exstrings.Bytes(line), []byte("\t"), []byte(""), -1))
+	line = exbytes.ToString(exbytes.Replace(exstrings.Bytes(line), []byte("\n"), []byte(""), -1))
+	line = exbytes.ToString(exbytes.Replace(exstrings.Bytes(line), []byte("\xc2\xa0"), []byte(""), -1))
 	return line
 }
 
@@ -222,10 +222,10 @@ func FixLineNotWrap(line string) string {
 	//line = strings.Replace(line, "\t", "", -1)
 	//line = strings.Replace(line, "\r", "", -1)
 	//line = strings.Replace(line, "\xc2\xa0", "", -1)
-	line = exbytes.ToString(exbytes.Replace(exstrings.UnsafeToBytes(line), []byte("\r"), []byte(""), -1))
-	line = exbytes.ToString(exbytes.Replace(exstrings.UnsafeToBytes(line), []byte(" "), []byte(""), -1))
-	line = exbytes.ToString(exbytes.Replace(exstrings.UnsafeToBytes(line), []byte("\t"), []byte(""), -1))
-	line = exbytes.ToString(exbytes.Replace(exstrings.UnsafeToBytes(line), []byte("\xc2\xa0"), []byte(""), -1))
+	line = exbytes.ToString(exbytes.Replace(exstrings.Bytes(line), []byte("\r"), []byte(""), -1))
+	line = exbytes.ToString(exbytes.Replace(exstrings.Bytes(line), []byte(" "), []byte(""), -1))
+	line = exbytes.ToString(exbytes.Replace(exstrings.Bytes(line), []byte("\t"), []byte(""), -1))
+	line = exbytes.ToString(exbytes.Replace(exstrings.Bytes(line), []byte("\xc2\xa0"), []byte(""), -1))
 	return line
 }
 
