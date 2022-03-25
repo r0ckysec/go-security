@@ -7,6 +7,7 @@ import (
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 	"io"
 	"os"
+	"runtime"
 )
 
 var logger *logrus.Logger
@@ -22,12 +23,6 @@ func init() {
 			TimestampFormat: "2006-01-02 15:04:05",
 		},
 	}
-	//if debug == true {
-	//	logger.SetLevel(logrus.DebugLevel)
-	//} else if verbose == true {
-	//	logger.SetOutput(os.Stdout)
-	//	logger.SetLevel(logrus.InfoLevel)
-	//}
 }
 
 func GetLogger() *logrus.Logger {
@@ -55,7 +50,7 @@ func Data(format string, args ...interface{}) {
 	fmt.Printf("%s\n", fmt.Sprintf(format, args...))
 }
 
-// GoodF print good message
+// Green print good message
 func Green(format string, args ...interface{}) {
 	good := color.GreenString("[+]")
 	fmt.Printf("%s %s\n", good, fmt.Sprintf(format, args...))
@@ -87,19 +82,27 @@ func Info(args ...interface{}) {
 
 // ErrorF print good message
 func ErrorF(format string, args ...interface{}) {
-	logger.Error(fmt.Sprintf(format, args...))
+	_, file, line, _ := runtime.Caller(1)
+	fileLine := fmt.Sprintf("%s:%d", file, line)
+	logger.Errorln(fileLine, fmt.Sprintf(format, args...))
 }
 
 func Error(args ...interface{}) {
-	logger.Errorln(args)
+	_, file, line, _ := runtime.Caller(1)
+	fileLine := fmt.Sprintf("%s:%d", file, line)
+	logger.Errorln(fileLine, args)
 }
 
 func FatalF(format string, args ...interface{}) {
-	logger.Fatal(fmt.Sprintf(format, args...))
+	_, file, line, _ := runtime.Caller(1)
+	fileLine := fmt.Sprintf("%s:%d", file, line)
+	logger.Fatalln(fileLine, fmt.Sprintf(format, args...))
 }
 
 func Fatal(args ...interface{}) {
-	logger.Fatalln(args)
+	_, file, line, _ := runtime.Caller(1)
+	fileLine := fmt.Sprintf("%s:%d", file, line)
+	logger.Fatalln(fileLine, args)
 }
 
 func WarningF(format string, args ...interface{}) {
