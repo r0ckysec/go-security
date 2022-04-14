@@ -6,6 +6,7 @@
 package http
 
 import (
+	"bufio"
 	"crypto/tls"
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fasthttp/fasthttpproxy"
@@ -182,4 +183,72 @@ func getUserAgent() string {
 	rand.Seed(time.Now().UnixNano())
 	i := rand.Intn(len(UserAgents))
 	return UserAgents[i]
+}
+
+func (req *Request) RequestRaw(raw string) ([]byte, *fasthttp.ResponseHeader, error) {
+	request := fasthttp.AcquireRequest()
+	defer fasthttp.ReleaseRequest(request) // 用完需要释放资源
+	err := request.Read(bufio.NewReader(strings.NewReader(raw)))
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(req.headers) > 0 {
+		for k, v := range req.headers {
+			request.Header.Set(k, v)
+		}
+		if req.headers["User-Agent"] == "" {
+			request.Header.Set("User-Agent", getUserAgent())
+		}
+	} else {
+		request.Header.Set("User-Agent", getUserAgent())
+	}
+
+	//修改HTTP超时时间
+	//if req.timeout != 0 {
+	//	timeout = time.Duration(req.timeout) * time.Second
+	//}
+	//修改HOST值
+	if req.host != "" {
+		request.SetHost(req.host)
+	}
+	//修改代理选项
+	if req.proxy != "" {
+		u, err := url.Parse(req.proxy)
+		if err == nil {
+			if strings.Contains(strings.ToLower(u.Scheme), "http") {
+				req.client.Dial = fasthttpproxy.FasthttpHTTPDialer(u.Host)
+			} else {
+				req.client.Dial = fasthttpproxy.FasthttpSocksDialer(u.Host)
+			}
+		} else {
+			req.client.Dial = fasthttpproxy.FasthttpSocksDialer(req.proxy)
+		}
+		//fasthttpproxy.FasthttpSocksDialer("127.0.0.1:65432")
+		//fasthttpproxy.FasthttpHTTPDialer("http://127.0.0.1:65432")
+	}
+
+	resp := fasthttp.AcquireResponse()
+	defer fasthttp.ReleaseResponse(resp) // 用完需要释放资源, 一定要释放
+	request.SetConnectionClose()
+	if req.redirects > 0 {
+		if err = req.client.DoRedirects(request, resp, req.redirects); err != nil {
+			return nil, nil, err
+		}
+	} else {
+		if err = req.client.DoTimeout(request, resp, req.timeout); err != nil {
+			return nil, nil, err
+		}
+	}
+	header := &fasthttp.ResponseHeader{}
+	resp.Header.CopyTo(header)
+	return resp.Body(), header, err
+}
+
+func (req *Request) Raw(raw string) ([]byte, error) {
+	body, _, err := req.RequestRaw(raw)
+	return body, err
+}
+
+func (req *Request) RawH(raw string) ([]byte, *fasthttp.ResponseHeader, error) {
+	return req.RequestRaw(raw)
 }
