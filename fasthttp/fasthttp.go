@@ -8,6 +8,7 @@ package http
 import (
 	"bufio"
 	"crypto/tls"
+	cmap "github.com/orcaman/concurrent-map"
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fasthttp/fasthttpproxy"
 	"math/rand"
@@ -18,7 +19,7 @@ import (
 
 var (
 	UserAgents = []string{
-		"Mozilla/5.0 (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)",
+		//"Mozilla/5.0 (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)",
 		"Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; AcooBrowser; .NET CLR 1.1.4322; .NET CLR 2.0.50727)",
 		"Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.0; Acoo Browser; SLCC1; .NET CLR 2.0.50727; Media Center PC 5.0; .NET CLR 3.0.04506)",
 		"Mozilla/4.0 (compatible; MSIE 7.0; AOL 9.5; AOLBuild 4337.35; Windows NT 5.1; .NET CLR 1.1.4322; .NET CLR 2.0.50727)",
@@ -60,7 +61,7 @@ var (
 
 type Request struct {
 	host      string
-	headers   map[string]string
+	headers   cmap.ConcurrentMap
 	proxy     string
 	timeout   time.Duration
 	client    *fasthttp.Client
@@ -69,7 +70,7 @@ type Request struct {
 
 func NewRequest() *Request {
 	return &Request{
-		headers:   make(map[string]string),
+		headers:   cmap.New(),
 		timeout:   dialTimout * 4,
 		client:    &client,
 		redirects: 0,
@@ -81,7 +82,7 @@ func (req *Request) SetHost(host string) {
 }
 
 func (req *Request) SetHeaders(key string, value string) {
-	req.headers[key] = value
+	req.headers.Set(key, value)
 }
 func (req *Request) SetProxy(proxy string) {
 	req.proxy = proxy
@@ -97,16 +98,18 @@ func (req *Request) SetRedirects(r int) {
 func (req *Request) Request(method string, Url string, data string) ([]byte, *fasthttp.ResponseHeader, error) {
 	request := fasthttp.AcquireRequest()
 	defer fasthttp.ReleaseRequest(request) // 用完需要释放资源
-	request.Header.SetMethod(method)
+	request.Header.SetMethod(strings.ToUpper(method))
 	request.SetRequestURI(Url)
 	if len(req.headers) > 0 {
-		for k, v := range req.headers {
-			request.Header.Set(k, v)
+		for iter := range req.headers.IterBuffered() {
+			request.Header.Set(iter.Key, iter.Val.(string))
 		}
-		if req.headers["User-Agent"] == "" {
+		ua, ok := req.headers.Get("User-Agent")
+		if !ok || ua.(string) == "" {
 			request.Header.Set("User-Agent", getUserAgent())
 		}
-		if req.headers["Content-Type"] == "" && len(data) > 0 {
+		ct, ok := req.headers.Get("Content-Type")
+		if (!ok || ct.(string) == "") && len(data) > 0 {
 			request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		}
 	} else {
@@ -193,10 +196,11 @@ func (req *Request) RequestRaw(raw string) ([]byte, *fasthttp.ResponseHeader, er
 		return nil, nil, err
 	}
 	if len(req.headers) > 0 {
-		for k, v := range req.headers {
-			request.Header.Set(k, v)
+		for iter := range req.headers.IterBuffered() {
+			request.Header.Set(iter.Key, iter.Val.(string))
 		}
-		if req.headers["User-Agent"] == "" {
+		ua, ok := req.headers.Get("User-Agent")
+		if !ok || ua.(string) == "" {
 			request.Header.Set("User-Agent", getUserAgent())
 		}
 	} else {
@@ -251,4 +255,65 @@ func (req *Request) Raw(raw string) ([]byte, error) {
 
 func (req *Request) RawH(raw string) ([]byte, *fasthttp.ResponseHeader, error) {
 	return req.RequestRaw(raw)
+}
+
+func (req *Request) HTTPRaw(method string, Url string, data string) ([]byte, *fasthttp.ResponseHeader, string, string, error) {
+	request := fasthttp.AcquireRequest()
+	defer fasthttp.ReleaseRequest(request) // 用完需要释放资源
+	request.Header.SetMethod(strings.ToUpper(method))
+	request.SetRequestURI(Url)
+	if len(req.headers) > 0 {
+		for iter := range req.headers.IterBuffered() {
+			request.Header.Set(iter.Key, iter.Val.(string))
+		}
+		ua, ok := req.headers.Get("User-Agent")
+		if !ok || ua.(string) == "" {
+			request.Header.Set("User-Agent", getUserAgent())
+		}
+		ct, ok := req.headers.Get("Content-Type")
+		if (!ok || ct.(string) == "") && len(data) > 0 {
+			request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		}
+	} else {
+		request.Header.Set("User-Agent", getUserAgent())
+		if len(data) > 0 {
+			request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		}
+	}
+	if len(data) > 0 {
+		request.SetBodyString(data)
+	}
+	//修改HOST值
+	if req.host != "" {
+		request.SetHost(req.host)
+	}
+	//修改代理选项
+	if req.proxy != "" {
+		u, err := url.Parse(req.proxy)
+		if err == nil {
+			if strings.Contains(strings.ToLower(u.Scheme), "http") {
+				req.client.Dial = fasthttpproxy.FasthttpHTTPDialer(u.Host)
+			} else {
+				req.client.Dial = fasthttpproxy.FasthttpSocksDialer(u.Host)
+			}
+		} else {
+			req.client.Dial = fasthttpproxy.FasthttpSocksDialer(req.proxy)
+		}
+	}
+	resp := fasthttp.AcquireResponse()
+	defer fasthttp.ReleaseResponse(resp) // 用完需要释放资源, 一定要释放
+	request.SetConnectionClose()
+	var err error
+	if req.redirects > 0 {
+		if err = req.client.DoRedirects(request, resp, req.redirects); err != nil {
+			return nil, nil, "", "", err
+		}
+	} else {
+		if err = req.client.DoTimeout(request, resp, req.timeout); err != nil {
+			return nil, nil, "", "", err
+		}
+	}
+	header := &fasthttp.ResponseHeader{}
+	resp.Header.CopyTo(header)
+	return resp.Body(), header, request.String(), resp.String(), err
 }
