@@ -9,6 +9,7 @@ import (
 	"bufio"
 	"crypto/tls"
 	cmap "github.com/orcaman/concurrent-map"
+	"github.com/r0ckysec/go-security/bin/misc"
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fasthttp/fasthttpproxy"
 	"math/rand"
@@ -316,4 +317,17 @@ func (req *Request) HTTPRaw(method string, Url string, data string) ([]byte, *fa
 	header := &fasthttp.ResponseHeader{}
 	resp.Header.CopyTo(header)
 	return resp.Body(), header, request.String(), resp.String(), err
+}
+
+func GetHeaderKeys(header *fasthttp.ResponseHeader) []string {
+	var keys []string
+	split := strings.Split(header.String(), "\n")
+	for _, hn := range split {
+		n := strings.SplitN(hn, ":", 2)
+		if len(n) > 1 {
+			keys = append(keys, n[0])
+		}
+	}
+	keys = misc.RemoveDuplicatesAndEmpty(keys)
+	return keys
 }
