@@ -260,6 +260,19 @@ func RemoveDuplicatesAndEmpty(ss []string) (ret []string) {
 	return result
 }
 
+// RemoveEmpty 数组去空
+func RemoveEmpty(ss []string) (ret []string) {
+	result := make([]string, 0, len(ss))
+	temp := map[string]struct{}{}
+	for _, item := range ss {
+		if len(item) > 0 {
+			temp[item] = struct{}{}
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
 // FileIsExist 文件是否存在
 func FileIsExist(path string) bool {
 	_, err := os.Lstat(path)
