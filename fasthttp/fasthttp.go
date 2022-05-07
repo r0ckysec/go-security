@@ -96,6 +96,10 @@ func (req *Request) SetRedirects(r int) {
 	req.redirects = r
 }
 
+func (req *Request) DisablePathNormalizing(b bool) {
+	req.client.DisablePathNormalizing = b
+}
+
 func (req *Request) Request(method string, Url string, data string) ([]byte, *fasthttp.ResponseHeader, error) {
 	request := fasthttp.AcquireRequest()
 	defer fasthttp.ReleaseRequest(request) // 用完需要释放资源
