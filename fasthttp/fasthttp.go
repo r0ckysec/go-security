@@ -105,6 +105,7 @@ func (req *Request) Request(method string, Url string, data string) ([]byte, *fa
 	defer fasthttp.ReleaseRequest(request) // 用完需要释放资源
 	request.Header.SetMethod(strings.ToUpper(method))
 	request.SetRequestURI(Url)
+	request.URI().DisablePathNormalizing = req.client.DisablePathNormalizing
 	if len(req.headers) > 0 {
 		for iter := range req.headers.IterBuffered() {
 			request.Header.Set(iter.Key, iter.Val.(string))
