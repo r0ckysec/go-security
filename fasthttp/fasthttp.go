@@ -40,7 +40,11 @@ var (
 	}
 	dialTimout = 5 * time.Second
 	keepAlive  = 15 * time.Second
-	client     = fasthttp.Client{
+	client     = NewClient()
+)
+
+func NewClient() *fasthttp.Client {
+	return &fasthttp.Client{
 		TLSConfig: &tls.Config{
 			InsecureSkipVerify: true,
 			MinVersion:         tls.VersionTLS10,
@@ -58,7 +62,7 @@ var (
 		MaxConnWaitTimeout:        dialTimout,
 		MaxIdemponentCallAttempts: fasthttp.DefaultMaxIdemponentCallAttempts,
 	}
-)
+}
 
 type Request struct {
 	host      string
@@ -73,7 +77,7 @@ func NewRequest() *Request {
 	return &Request{
 		headers:   cmap.New(),
 		timeout:   dialTimout * 4,
-		client:    &client,
+		client:    client,
 		redirects: 0,
 	}
 }
@@ -102,7 +106,7 @@ func (req *Request) SetProxy(proxy string) {
 		//fasthttpproxy.FasthttpSocksDialer("127.0.0.1:65432")
 		//fasthttpproxy.FasthttpHTTPDialer("http://127.0.0.1:65432")
 	} else {
-		req.client.Dial = nil
+		req.client = NewClient()
 	}
 }
 func (req *Request) SetTimeout(timeout int) {
