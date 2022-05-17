@@ -87,6 +87,23 @@ func (req *Request) SetHeaders(key string, value string) {
 }
 func (req *Request) SetProxy(proxy string) {
 	req.proxy = proxy
+	//修改代理选项
+	if req.proxy != "" {
+		u, err := url.Parse(req.proxy)
+		if err == nil {
+			if strings.Contains(strings.ToLower(u.Scheme), "http") {
+				req.client.Dial = fasthttpproxy.FasthttpHTTPDialer(u.Host)
+			} else {
+				req.client.Dial = fasthttpproxy.FasthttpSocksDialer(u.Host)
+			}
+		} else {
+			req.client.Dial = fasthttpproxy.FasthttpSocksDialer(req.proxy)
+		}
+		//fasthttpproxy.FasthttpSocksDialer("127.0.0.1:65432")
+		//fasthttpproxy.FasthttpHTTPDialer("http://127.0.0.1:65432")
+	} else {
+		req.client.Dial = nil
+	}
 }
 func (req *Request) SetTimeout(timeout int) {
 	req.timeout = time.Duration(timeout) * time.Second
@@ -135,21 +152,6 @@ func (req *Request) Request(method string, Url string, data string) ([]byte, *fa
 	//修改HOST值
 	if req.host != "" {
 		request.SetHost(req.host)
-	}
-	//修改代理选项
-	if req.proxy != "" {
-		u, err := url.Parse(req.proxy)
-		if err == nil {
-			if strings.Contains(strings.ToLower(u.Scheme), "http") {
-				req.client.Dial = fasthttpproxy.FasthttpHTTPDialer(u.Host)
-			} else {
-				req.client.Dial = fasthttpproxy.FasthttpSocksDialer(u.Host)
-			}
-		} else {
-			req.client.Dial = fasthttpproxy.FasthttpSocksDialer(req.proxy)
-		}
-		//fasthttpproxy.FasthttpSocksDialer("127.0.0.1:65432")
-		//fasthttpproxy.FasthttpHTTPDialer("http://127.0.0.1:65432")
 	}
 
 	resp := fasthttp.AcquireResponse()
@@ -222,21 +224,6 @@ func (req *Request) RequestRaw(raw string) ([]byte, *fasthttp.ResponseHeader, er
 	if req.host != "" {
 		request.SetHost(req.host)
 	}
-	//修改代理选项
-	if req.proxy != "" {
-		u, err := url.Parse(req.proxy)
-		if err == nil {
-			if strings.Contains(strings.ToLower(u.Scheme), "http") {
-				req.client.Dial = fasthttpproxy.FasthttpHTTPDialer(u.Host)
-			} else {
-				req.client.Dial = fasthttpproxy.FasthttpSocksDialer(u.Host)
-			}
-		} else {
-			req.client.Dial = fasthttpproxy.FasthttpSocksDialer(req.proxy)
-		}
-		//fasthttpproxy.FasthttpSocksDialer("127.0.0.1:65432")
-		//fasthttpproxy.FasthttpHTTPDialer("http://127.0.0.1:65432")
-	}
 
 	resp := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseResponse(resp) // 用完需要释放资源, 一定要释放
@@ -295,19 +282,7 @@ func (req *Request) HTTPRaw(method string, Url string, data string) ([]byte, *fa
 	if req.host != "" {
 		request.SetHost(req.host)
 	}
-	//修改代理选项
-	if req.proxy != "" {
-		u, err := url.Parse(req.proxy)
-		if err == nil {
-			if strings.Contains(strings.ToLower(u.Scheme), "http") {
-				req.client.Dial = fasthttpproxy.FasthttpHTTPDialer(u.Host)
-			} else {
-				req.client.Dial = fasthttpproxy.FasthttpSocksDialer(u.Host)
-			}
-		} else {
-			req.client.Dial = fasthttpproxy.FasthttpSocksDialer(req.proxy)
-		}
-	}
+
 	resp := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseResponse(resp) // 用完需要释放资源, 一定要释放
 	request.SetConnectionClose()
