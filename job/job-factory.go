@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"github.com/panjf2000/ants/v2"
+	"github.com/r0ckysec/go-security/bin/misc"
 	system "github.com/r0ckysec/go-security/job/util"
 	"github.com/r0ckysec/go-security/secio"
 	"github.com/thinkeridea/go-extend/exbytes"
@@ -17,6 +18,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 )
 
 //Job 任务
@@ -30,11 +32,17 @@ type Job struct {
 	cancel  context.CancelFunc
 }
 
-func (j *Job) Start() (err error) {
+// Start 可以为空，可以传入多个参数，仅限传入交互命令和超时配置
+func (j *Job) Start(config ...map[string]interface{}) (err error) {
 	Jobmap.Set(j.ID, j)
 	defer Jobmap.Remove(j.ID)
-
-	ctx, cancel := context.WithCancel(context.Background())
+	var ctx context.Context
+	var cancel context.CancelFunc
+	if timeout, ok := config[0]["timeout"].(int); ok {
+		ctx, cancel = context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
+	} else {
+		ctx, cancel = context.WithCancel(context.Background())
+	}
 	j.cancel = cancel
 	//var stdoutBuf, stderrBuf bytes.Buffer
 	stdoutBuf := secio.Buffer.Get().(*bytes.Buffer)
@@ -68,6 +76,15 @@ func (j *Job) Start() (err error) {
 	system.SetPgid(cmd)
 	cmd.Stdout = stdoutBuf
 	cmd.Stderr = stderrBuf
+	//进入交互后的命令
+	if len(config) > 0 {
+		if in, ok := config[0]["in"].(string); ok {
+			inPipe, _ := cmd.StdinPipe()
+			_, _ = inPipe.Write(misc.Str2Bytes(in))
+			_, _ = inPipe.Write([]byte("\n"))
+			_ = inPipe.Close()
+		}
+	}
 	j.ExecCmd = cmd
 	//stdoutIn, _ := cmd.StdoutPipe()
 	//stderrIn, _ := cmd.StderrPipe()
