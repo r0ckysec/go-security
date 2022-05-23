@@ -1,3 +1,6 @@
+//go:build windows
+// +build windows
+
 /**
  * @Description
  * @Author r0cky
@@ -157,10 +160,11 @@ func (j *Job) Stop() {
 	if j.ExecCmd != nil {
 		if j.ExecCmd.Process != nil {
 			j.KillPid(j.ExecCmd.Process.Pid)
+			_ = j.ExecCmd.Process.Release()
 		}
 		// 防止产生僵尸进程
 		_ = j.ExecCmd.Wait()
-		_, _ = j.ExecCmd.Process.Wait()
+		//_, _ = j.ExecCmd.Process.Wait()
 	}
 }
 
@@ -185,7 +189,7 @@ func (j *Job) SendKill() {
 			//log.Log.Printf("已通知 pid: %d 子线程主动结束\n", p.Pid)
 		}
 		//防止产生僵尸进程
-		_ = c.Wait()
+		//_ = c.Wait()
 		_, _ = c.Process.Wait()
 		j.Stop()
 		//if state, _ := c.Process.Wait(); state != nil {
