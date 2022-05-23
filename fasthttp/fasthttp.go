@@ -290,14 +290,15 @@ func (req *Request) HTTPRaw(method string, Url string, data string) ([]byte, *fa
 	resp := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseResponse(resp) // 用完需要释放资源, 一定要释放
 	request.SetConnectionClose()
+	requestRaw := request.String()
 	var err error
 	if req.redirects > 0 {
 		if err = req.client.DoRedirects(request, resp, req.redirects); err != nil {
-			return nil, nil, request.String(), "", err
+			return nil, nil, requestRaw, resp.String(), err
 		}
 	} else {
 		if err = req.client.DoTimeout(request, resp, req.timeout); err != nil {
-			return nil, nil, request.String(), "", err
+			return nil, nil, requestRaw, resp.String(), err
 		}
 	}
 	header := &fasthttp.ResponseHeader{}
