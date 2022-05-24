@@ -283,14 +283,21 @@ func (req *Request) HTTPRaw(method string, Url string, data string) ([]byte, *fa
 		request.SetBodyString(data)
 	}
 	//修改HOST值
+	if len(request.Header.Host()) > 0 {
+		request.UseHostHeader = true
+	} else {
+		request.UseHostHeader = false
+	}
 	if req.host != "" {
 		request.SetHost(req.host)
 	}
-
+	c, ok := req.headers.Get("Connection")
+	if !ok || c.(string) == "" {
+		request.SetConnectionClose()
+	}
+	requestRaw := request.String()
 	resp := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseResponse(resp) // 用完需要释放资源, 一定要释放
-	request.SetConnectionClose()
-	requestRaw := request.String()
 	var err error
 	if req.redirects > 0 {
 		if err = req.client.DoRedirects(request, resp, req.redirects); err != nil {

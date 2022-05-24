@@ -12,7 +12,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.0
 	github.com/thinkeridea/go-extend v1.3.2
-	github.com/valyala/fasthttp v1.36.0
+	github.com/valyala/fasthttp v1.37.0
 	github.com/valyala/fastjson v1.6.3
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2
 )
