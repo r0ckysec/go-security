@@ -56,8 +56,8 @@ func NewClient() *fasthttp.Client {
 		//在此持续时间后关闭保持活动的连接。 默认无限
 		MaxConnDuration: time.Minute * 2,
 		//读取超时，默认无限长容易阻塞
-		ReadTimeout:  keepAlive,
-		WriteTimeout: keepAlive,
+		ReadTimeout:  keepAlive * 2,
+		WriteTimeout: keepAlive * 2,
 		//等待空闲连接的最长持续时间，默认不会等待，立即返回 ErrNoFreeConns
 		MaxConnWaitTimeout:        dialTimout,
 		MaxIdemponentCallAttempts: fasthttp.DefaultMaxIdemponentCallAttempts,
