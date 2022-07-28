@@ -1,12 +1,10 @@
-//go:build windows
-// +build windows
+package job
 
 /**
  * @Description
  * @Author r0cky
  * @Date 2021/10/7 23:14
  **/
-package job
 
 import (
 	"bytes"
@@ -160,8 +158,11 @@ func (j *Job) Stop() {
 	if j.ExecCmd != nil {
 		if j.ExecCmd.Process != nil {
 			j.KillPid(j.ExecCmd.Process.Pid)
+			//fmt.Println("卡在 ExecCmd.Process.Release 前")
 			_ = j.ExecCmd.Process.Release()
+			//_, _ = j.ExecCmd.Process.Wait()
 		}
+		//fmt.Println("卡在 ExecCmd.Wait 前")
 		// 防止产生僵尸进程
 		_ = j.ExecCmd.Wait()
 		//_, _ = j.ExecCmd.Process.Wait()

@@ -61,6 +61,13 @@ func NewClient() *fasthttp.Client {
 		//等待空闲连接的最长持续时间，默认不会等待，立即返回 ErrNoFreeConns
 		MaxConnWaitTimeout:        dialTimout,
 		MaxIdemponentCallAttempts: fasthttp.DefaultMaxIdemponentCallAttempts,
+		RetryIf: func(request *fasthttp.Request) bool {
+			retry := request.Header.Peek("retry")
+			if misc.Bytes2Str(retry) == "1" {
+				return true
+			}
+			return false
+		},
 	}
 }
 
@@ -106,6 +113,7 @@ func (req *Request) SetProxy(proxy string) {
 		//fasthttpproxy.FasthttpSocksDialer("127.0.0.1:65432")
 		//fasthttpproxy.FasthttpHTTPDialer("http://127.0.0.1:65432")
 	} else {
+		req.client = nil
 		req.client = NewClient()
 	}
 }

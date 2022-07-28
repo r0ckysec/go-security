@@ -344,8 +344,9 @@ func Bytes2Str(b []byte) string {
 	return *(*string)(unsafe.Pointer(&b))
 }
 
-// StrInArr 高效率判断字符串是否在数组中
-func StrInArr(ss []string, s string) bool {
+// IsInStrArr2 高效率判断字符串是否在数组中
+func IsInStrArr2(ss []string, s string) bool {
+	sort.Strings(ss)
 	index := sort.SearchStrings(ss, s)
 	if index < len(ss) && ss[index] == s {
 		return true
