@@ -7,6 +7,7 @@ import (
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 	"io"
 	"os"
+	"path"
 	"runtime"
 )
 
@@ -29,8 +30,23 @@ func GetLogger() *logrus.Logger {
 	return logger
 }
 
-func SetOutput(output io.Writer) {
-	logger.SetOutput(output)
+func SetOutput(logPath string, isStdout bool) {
+	//set logfile Stdout
+	if _, err := os.Stat(path.Dir(logPath)); os.IsNotExist(err) {
+		_ = os.MkdirAll(path.Dir(logPath), os.ModePerm)
+	}
+	logFile, logErr := os.OpenFile(logPath, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666)
+	if logErr != nil {
+		FatalF("Fail to find %s Server start Failed", logFile)
+	}
+	writers := []io.Writer{
+		logFile,
+	}
+	if isStdout {
+		writers = append(writers, os.Stdout)
+	}
+	writer := io.MultiWriter(writers...)
+	logger.SetOutput(writer)
 }
 
 func SetDebug() {
