@@ -62,7 +62,7 @@ func SetLevel(level logrus.Level) {
 	logger.SetLevel(level)
 }
 
-func Data(format string, args ...interface{}) {
+func Log(format string, args ...interface{}) {
 	fmt.Printf("%s\n", fmt.Sprintf(format, args...))
 }
 
@@ -82,8 +82,8 @@ func Blue(format string, args ...interface{}) {
 	fmt.Printf("%s %s\n", good, fmt.Sprintf(format, args...))
 }
 
-func Hack(format string, args ...interface{}) {
-	good := color.RedString("[HACKED]")
+func Attack(format string, args ...interface{}) {
+	good := color.RedString("[ATTACK!]")
 	fmt.Printf("%s %s\n", good, fmt.Sprintf(format, args...))
 }
 

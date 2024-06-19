@@ -8,8 +8,8 @@ package http
 import (
 	"bufio"
 	"crypto/tls"
-	cmap "github.com/orcaman/concurrent-map"
-	"github.com/r0ckysec/go-security/bin/misc"
+	cmap "github.com/orcaman/concurrent-map/v2"
+	"github.com/r0ckysec/go-security/misc"
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fasthttp/fasthttpproxy"
 	"math/rand"
@@ -39,24 +39,24 @@ var (
 		"Opera/9.80 (Macintosh; Intel Mac OS X 10.6.8; U; fr) Presto/2.9.168 Version/11.52",
 	}
 	dialTimout = 5 * time.Second
-	keepAlive  = 15 * time.Second
-	client     = NewClient()
+	keepAlive  = 5 * time.Second
 )
 
-func NewClient() *fasthttp.Client {
+func newClient() *fasthttp.Client {
 	return &fasthttp.Client{
 		TLSConfig: &tls.Config{
 			InsecureSkipVerify: true,
 			MinVersion:         tls.VersionTLS10,
 		},
 		// 最大连接数 默认 fasthttp.DefaultMaxConnsPerHost
-		MaxConnsPerHost: 2000,
+		MaxConnsPerHost: fasthttp.DefaultMaxConnsPerHost,
 		// 在这个时间间隔后，空闲的 keep-alive 连接会被关闭。 默认值为 DefaultMaxIdleConnDuration 。
 		MaxIdleConnDuration: fasthttp.DefaultMaxIdleConnDuration,
 		//在此持续时间后关闭保持活动的连接。 默认无限
-		MaxConnDuration: time.Minute * 2,
-		//读取超时，默认无限长容易阻塞
-		ReadTimeout:  keepAlive * 2,
+		MaxConnDuration: time.Minute * 1,
+		//读取超时，默认无限长容易阻塞，不设置read超时，可能会造成连接复用失效
+		ReadTimeout: keepAlive * 2,
+		// 写超时时间
 		WriteTimeout: keepAlive * 2,
 		//等待空闲连接的最长持续时间，默认不会等待，立即返回 ErrNoFreeConns
 		MaxConnWaitTimeout:        dialTimout,
@@ -72,30 +72,38 @@ func NewClient() *fasthttp.Client {
 }
 
 type Request struct {
-	host      string
-	headers   cmap.ConcurrentMap
-	proxy     string
-	timeout   time.Duration
-	client    *fasthttp.Client
-	redirects int
+	host            string
+	headers         cmap.ConcurrentMap[string, string]
+	proxy           string
+	timeout         time.Duration
+	client          *fasthttp.Client
+	redirects       int
+	RequestRaw      string
+	ResponseRaw     string
+	ResponseBody    []byte
+	ResponseHeaders string
 }
 
 func NewRequest() *Request {
 	return &Request{
-		headers:   cmap.New(),
-		timeout:   dialTimout * 4,
-		client:    client,
+		headers:   cmap.New[string](),
+		timeout:   dialTimout * 6,
+		client:    newClient(),
 		redirects: 0,
 	}
 }
 
+// SetHost 设置Host
 func (req *Request) SetHost(host string) {
 	req.host = host
 }
 
+// SetHeaders 设置请求头
 func (req *Request) SetHeaders(key string, value string) {
 	req.headers.Set(key, value)
 }
+
+// SetProxy 设置代理
 func (req *Request) SetProxy(proxy string) {
 	req.proxy = proxy
 	//修改代理选项
@@ -114,41 +122,54 @@ func (req *Request) SetProxy(proxy string) {
 		//fasthttpproxy.FasthttpHTTPDialer("http://127.0.0.1:65432")
 	} else {
 		req.client = nil
-		req.client = NewClient()
+		req.client = newClient()
 	}
 }
+
+// SetTimeout 设置超时时间 默认 30秒
 func (req *Request) SetTimeout(timeout int) {
 	req.timeout = time.Duration(timeout) * time.Second
 }
 
+// SetRedirects 设置跳转标识
 func (req *Request) SetRedirects(r int) {
 	req.redirects = r
 }
 
+// DisablePathNormalizing 设置请求路径标准化
 func (req *Request) DisablePathNormalizing(b bool) {
 	req.client.DisablePathNormalizing = b
 }
 
-func (req *Request) Request(method string, Url string, data string) ([]byte, *fasthttp.ResponseHeader, error) {
-	request := fasthttp.AcquireRequest()
-	defer fasthttp.ReleaseRequest(request) // 用完需要释放资源
-	request.Header.SetMethod(strings.ToUpper(method))
-	request.SetRequestURI(Url)
+// Request 请求方法主体
+func (req *Request) Request(method string, url string, data string) (err error) {
+	// 从请求池中分别获取一个request、response实例
+	request, response := fasthttp.AcquireRequest(), fasthttp.AcquireResponse()
+	// 回收到请求池
+	defer func() {
+		fasthttp.ReleaseRequest(request)
+		fasthttp.ReleaseResponse(response)
+	}()
+	// 设置请求方法
+	request.Header.SetMethod(method)
+	// 设置请求URL
+	request.SetRequestURI(url)
+	// 设置URL标准化
 	request.URI().DisablePathNormalizing = req.client.DisablePathNormalizing
-	if len(req.headers) > 0 {
+	if req.headers.Count() > 0 {
 		for iter := range req.headers.IterBuffered() {
-			request.Header.Set(iter.Key, iter.Val.(string))
+			request.Header.Set(iter.Key, iter.Val)
 		}
 		ua, ok := req.headers.Get("User-Agent")
-		if !ok || ua.(string) == "" {
-			request.Header.Set("User-Agent", getUserAgent())
+		if !ok || ua == "" {
+			request.Header.SetUserAgent(RandUserAgent())
 		}
 		ct, ok := req.headers.Get("Content-Type")
-		if (!ok || ct.(string) == "") && len(data) > 0 {
-			request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		if (!ok || ct == "") && (strings.EqualFold(method, fasthttp.MethodPost) || strings.EqualFold(method, fasthttp.MethodPut)) {
+			request.Header.SetContentType("application/x-www-form-urlencoded")
 		}
 	} else {
-		request.Header.Set("User-Agent", getUserAgent())
+		request.Header.SetUserAgent(RandUserAgent())
 		if len(data) > 0 {
 			request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		}
@@ -158,178 +179,95 @@ func (req *Request) Request(method string, Url string, data string) ([]byte, *fa
 	}
 
 	//修改HTTP超时时间
-	//if req.timeout != 0 {
-	//	timeout = time.Duration(req.timeout) * time.Second
-	//}
+	if req.timeout != 0 {
+		request.SetTimeout(req.timeout)
+	}
 	//修改HOST值
 	if req.host != "" {
 		request.SetHost(req.host)
 	}
-
-	resp := fasthttp.AcquireResponse()
-	defer fasthttp.ReleaseResponse(resp) // 用完需要释放资源, 一定要释放
 	request.SetConnectionClose()
-	var err error
+
 	if req.redirects > 0 {
-		if err = req.client.DoRedirects(request, resp, req.redirects); err != nil {
-			return nil, nil, err
+		if err = req.client.DoRedirects(request, response, req.redirects); err != nil {
+			return
 		}
 	} else {
-		if err = req.client.DoTimeout(request, resp, req.timeout); err != nil {
-			return nil, nil, err
+		if err = req.client.Do(request, response); err != nil {
+			return
 		}
 	}
-	header := &fasthttp.ResponseHeader{}
-	resp.Header.CopyTo(header)
-	return resp.Body(), header, err
+	req.ResponseHeaders = response.Header.String()
+	req.ResponseBody = response.Body()
+	req.RequestRaw = request.String()
+	req.ResponseRaw = response.String()
+	return
 }
 
-func (req *Request) Get(Url string) ([]byte, error) {
-	body, _, err := req.Request("GET", Url, "")
-	return body, err
+//func (req *Request) Get(Url string) ([]byte, error) {
+//	body, _, err := req.Request("GET", Url, "")
+//	return body, err
+//}
+
+//func (req *Request) Post(Url string, data string) ([]byte, error) {
+//	body, _, err := req.Request("POST", Url, data)
+//	return body, err
+//}
+
+func (req *Request) Get(url string) error {
+	return req.Request(fasthttp.MethodGet, url, "")
 }
 
-func (req *Request) Post(Url string, data string) ([]byte, error) {
-	body, _, err := req.Request("POST", Url, data)
-	return body, err
+func (req *Request) Post(url string, data string) error {
+	return req.Request(fasthttp.MethodPost, url, data)
 }
 
-func (req *Request) GetH(Url string) ([]byte, *fasthttp.ResponseHeader, error) {
-	return req.Request("GET", Url, "")
-}
-
-func (req *Request) PostH(Url string, data string) ([]byte, *fasthttp.ResponseHeader, error) {
-	return req.Request("GET", Url, "")
-}
-
-func getUserAgent() string {
+func RandUserAgent() string {
 	rand.Seed(time.Now().UnixNano())
 	i := rand.Intn(len(UserAgents))
 	return UserAgents[i]
 }
 
-func (req *Request) RequestRaw(raw string) ([]byte, *fasthttp.ResponseHeader, error) {
-	request := fasthttp.AcquireRequest()
-	defer fasthttp.ReleaseRequest(request) // 用完需要释放资源
-	err := request.Read(bufio.NewReader(strings.NewReader(raw)))
+func (req *Request) RawRequest(raw string) (err error) {
+	// 从请求池中分别获取一个request、response实例
+	request, response := fasthttp.AcquireRequest(), fasthttp.AcquireResponse()
+	// 回收到请求池
+	defer func() {
+		fasthttp.ReleaseRequest(request)
+		fasthttp.ReleaseResponse(response)
+	}()
+	err = request.Read(bufio.NewReader(strings.NewReader(raw)))
 	if err != nil {
-		return nil, nil, err
+		return
 	}
+	// 设置URL标准化
 	request.URI().DisablePathNormalizing = req.client.DisablePathNormalizing
-	if len(req.headers) > 0 {
-		for iter := range req.headers.IterBuffered() {
-			request.Header.Set(iter.Key, iter.Val.(string))
-		}
-		ua, ok := req.headers.Get("User-Agent")
-		if !ok || ua.(string) == "" {
-			request.Header.Set("User-Agent", getUserAgent())
-		}
-	} else {
-		request.Header.Set("User-Agent", getUserAgent())
-	}
 
 	//修改HTTP超时时间
-	//if req.timeout != 0 {
-	//	timeout = time.Duration(req.timeout) * time.Second
-	//}
-	//修改HOST值
-	if req.host != "" {
-		request.SetHost(req.host)
+	if req.timeout != 0 {
+		request.SetTimeout(req.timeout)
 	}
-
-	resp := fasthttp.AcquireResponse()
-	defer fasthttp.ReleaseResponse(resp) // 用完需要释放资源, 一定要释放
-	request.SetConnectionClose()
 	if req.redirects > 0 {
-		if err = req.client.DoRedirects(request, resp, req.redirects); err != nil {
-			return nil, nil, err
+		if err = req.client.DoRedirects(request, response, req.redirects); err != nil {
+			return
 		}
 	} else {
-		if err = req.client.DoTimeout(request, resp, req.timeout); err != nil {
-			return nil, nil, err
+		if err = req.client.Do(request, response); err != nil {
+			return
 		}
 	}
-	header := &fasthttp.ResponseHeader{}
-	resp.Header.CopyTo(header)
-	return resp.Body(), header, err
+	req.ResponseHeaders = response.Header.String()
+	req.RequestRaw = request.String()
+	req.ResponseRaw = response.String()
+	req.ResponseBody = request.Body()
+	return
 }
 
-func (req *Request) Raw(raw string) ([]byte, error) {
-	body, _, err := req.RequestRaw(raw)
-	return body, err
-}
+//func (req *Request) Raw(raw string) ([]byte, error) {
+//	body, _, err := req.RequestRaw(raw)
+//	return body, err
+//}
 
-func (req *Request) RawH(raw string) ([]byte, *fasthttp.ResponseHeader, error) {
-	return req.RequestRaw(raw)
-}
-
-func (req *Request) HTTPRaw(method string, Url string, data string) ([]byte, *fasthttp.ResponseHeader, string, string, error) {
-	request := fasthttp.AcquireRequest()
-	defer fasthttp.ReleaseRequest(request) // 用完需要释放资源
-	request.Header.SetMethod(strings.ToUpper(method))
-	request.SetRequestURI(Url)
-	request.URI().DisablePathNormalizing = req.client.DisablePathNormalizing
-	if len(req.headers) > 0 {
-		for iter := range req.headers.IterBuffered() {
-			request.Header.Set(iter.Key, iter.Val.(string))
-		}
-		ua, ok := req.headers.Get("User-Agent")
-		if !ok || ua.(string) == "" {
-			request.Header.Set("User-Agent", getUserAgent())
-		}
-		ct, ok := req.headers.Get("Content-Type")
-		if (!ok || ct.(string) == "") && len(data) > 0 {
-			request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		}
-	} else {
-		request.Header.Set("User-Agent", getUserAgent())
-		if len(data) > 0 {
-			request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		}
-	}
-	if len(data) > 0 {
-		request.SetBodyString(data)
-	}
-	//修改HOST值
-	if len(request.Header.Host()) > 0 {
-		request.UseHostHeader = true
-	} else {
-		request.UseHostHeader = false
-	}
-	if req.host != "" {
-		request.SetHost(req.host)
-	}
-	c, ok := req.headers.Get("Connection")
-	if !ok || c.(string) == "" {
-		request.SetConnectionClose()
-	}
-	requestRaw := request.String()
-	resp := fasthttp.AcquireResponse()
-	defer fasthttp.ReleaseResponse(resp) // 用完需要释放资源, 一定要释放
-	var err error
-	if req.redirects > 0 {
-		if err = req.client.DoRedirects(request, resp, req.redirects); err != nil {
-			return nil, nil, requestRaw, resp.String(), err
-		}
-	} else {
-		if err = req.client.DoTimeout(request, resp, req.timeout); err != nil {
-			return nil, nil, requestRaw, resp.String(), err
-		}
-	}
-	header := &fasthttp.ResponseHeader{}
-	resp.Header.CopyTo(header)
-	return resp.Body(), header, request.String(), resp.String(), err
-}
-
-func GetHeaderKeys(header *fasthttp.ResponseHeader) []string {
-	var keys []string
-	split := strings.Split(header.String(), "\n")
-	for _, hn := range split {
-		n := strings.SplitN(hn, ":", 2)
-		if len(n) > 1 {
-			keys = append(keys, n[0])
-		}
-	}
-	keys = misc.RemoveDuplicatesAndEmpty(keys)
-	return keys
+func (req *Request) Raw(raw string) error {
+	return req.RawRequest(raw)
 }
