@@ -78,6 +78,7 @@ type Request struct {
 	timeout         time.Duration
 	client          *fasthttp.Client
 	redirects       int
+	StatusCode      int
 	RequestRaw      string
 	ResponseRaw     string
 	ResponseBody    []byte
@@ -201,6 +202,7 @@ func (req *Request) Request(method string, url string, data string) (err error) 
 	req.ResponseBody = response.Body()
 	req.RequestRaw = request.String()
 	req.ResponseRaw = response.String()
+	req.StatusCode = response.StatusCode()
 	return
 }
 
@@ -259,7 +261,8 @@ func (req *Request) RawRequest(raw string) (err error) {
 	req.ResponseHeaders = response.Header.String()
 	req.RequestRaw = request.String()
 	req.ResponseRaw = response.String()
-	req.ResponseBody = request.Body()
+	req.ResponseBody = response.Body()
+	req.StatusCode = response.StatusCode()
 	return
 }
 
